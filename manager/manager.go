@@ -2,34 +2,36 @@ package manager
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"sync"
 	"time"
 )
 
-type DynamicConfig struct {
+type ConfigManager[T any] struct {
+	repo         Repository
+	scanInterval time.Duration
+
+	mx     sync.Mutex
+	dynCfg T
 }
 
-type ConfigManager struct {
-	repo Repository
-
-	mx     sync.RWMutex
-	dynCfg DynamicConfig
+func New[T any](repo Repository, initCfg T, scanInterval time.Duration) *ConfigManager[T] {
+	return &ConfigManager[T]{
+		dynCfg:       initCfg,
+		repo:         repo,
+		scanInterval: scanInterval,
+	}
 }
 
-func New(repo Repository) *ConfigManager {
-	return &ConfigManager{repo: repo}
-}
-
-func (m *ConfigManager) GetConfig() DynamicConfig {
-	m.mx.RLock()
-	defer m.mx.RUnlock()
+func (m *ConfigManager[T]) GetConfig() T {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 	return m.dynCfg
 }
 
-func (m *ConfigManager) LoadConfig(ctx context.Context) error {
-	var cfg DynamicConfig
-	if err := m.repo.GetConfig(ctx, &cfg); err != nil {
+func (m *ConfigManager[T]) LoadConfig(ctx context.Context) error {
+	var cfg T
+	if err := m.repo.GetConfig(ctx, &cfg, m.dynCfg); err != nil {
 		return err
 	}
 
@@ -40,7 +42,12 @@ func (m *ConfigManager) LoadConfig(ctx context.Context) error {
 	return nil
 }
 
-func (m *ConfigManager) Run(ctx context.Context, wg *sync.WaitGroup) {
+func (m *ConfigManager[T]) Run(ctx context.Context, wg *sync.WaitGroup) error {
+	if err := m.LoadConfig(ctx); err != nil {
+		log.Printf("err loading the config: %v\n", err)
+		return err
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -48,11 +55,13 @@ func (m *ConfigManager) Run(ctx context.Context, wg *sync.WaitGroup) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(5 * time.Second):
+			case <-time.After(m.scanInterval):
 				if err := m.LoadConfig(ctx); err != nil {
-					fmt.Println(err)
+					log.Printf("err loading the config: %v\n", err)
 				}
 			}
 		}
 	}()
+
+	return nil
 }

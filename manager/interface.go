@@ -6,5 +6,5 @@ import (
 
 type Repository interface {
 	UpdateConfig(ctx context.Context, value any) error
-	GetConfig(ctx context.Context, obj any) error
+	GetConfig(ctx context.Context, obj, defaultValue any) error
 }
