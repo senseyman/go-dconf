@@ -16,3 +16,6 @@ lint: dep
 
 test:
 	go test -tags=unit,integration -cover -race -count=1 -timeout=60s ./...
+
+generate:
+	mockgen -package mock -source manager/interface.go -destination manager/mock/interface.go

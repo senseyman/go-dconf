@@ -44,20 +44,35 @@ func (m *ConfigManager[T]) LoadConfig(ctx context.Context) error {
 
 func (m *ConfigManager[T]) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	if err := m.LoadConfig(ctx); err != nil {
-		log.Printf("err loading the config: %v\n", err)
+		log.Printf("Initial config load failed: %v", err)
 		return err
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		errorCount := 0
+		maxRetries := 5
+		backoff := time.Second
+
 		for {
 			select {
 			case <-ctx.Done():
+				log.Println("Configuration manager stopped")
 				return
 			case <-time.After(m.scanInterval):
 				if err := m.LoadConfig(ctx); err != nil {
-					log.Printf("err loading the config: %v\n", err)
+					log.Printf("Error loading configuration: %v", err)
+					errorCount++
+					if errorCount >= maxRetries {
+						log.Printf("Too many consecutive errors (%d), stopping updates", errorCount)
+						return
+					}
+					time.Sleep(backoff)
+					backoff *= 2 // Exponential backoff
+				} else {
+					errorCount = 0
+					backoff = time.Second // Reset backoff on success
 				}
 			}
 		}

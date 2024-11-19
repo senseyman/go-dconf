@@ -19,12 +19,17 @@ func (c *Client) UpdateConfig(ctx context.Context, value any) error {
 }
 
 func (c *Client) GetConfig(ctx context.Context, obj, defaultValue any) error {
+	if reflect.ValueOf(obj).Kind() != reflect.Ptr {
+		return errors.New("obj must be a pointer")
+	}
+
 	res := c.cli.HGet(ctx, dConfKey, c.appName)
 	if res.Err() != nil {
 		if errors.Is(res.Err(), redis.Nil) {
-			v := reflect.ValueOf(obj)
-			if v.Kind() == reflect.Ptr && !v.IsNil() {
-				v.Elem().Set(reflect.ValueOf(defaultValue))
+			objValue := reflect.ValueOf(obj).Elem()
+			defaultValueValue := reflect.ValueOf(defaultValue)
+			if objValue.Kind() == defaultValueValue.Kind() {
+				objValue.Set(defaultValueValue)
 			}
 			return nil
 		}
