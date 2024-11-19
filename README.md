@@ -72,8 +72,9 @@ func main() {
     configManager := manager.New(repo, initConfig, 10*time.Second)
 
     // Start the ConfigManager
+    wg := &sync.WaitGroup{}
     go func() {
-        if err := configManager.Run(ctx, nil); err != nil {
+        if err := configManager.Run(ctx, wg); err != nil {
             log.Fatalf("Failed to start config manager: %v", err)
         }
     }()
