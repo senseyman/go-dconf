@@ -45,18 +45,3 @@ jobs:
 
       - name: Run Tests
         run: make test
-
-  build:
-    name: Run Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
-
-      - name: Run Build
-        run: make build
