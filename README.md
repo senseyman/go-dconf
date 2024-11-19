@@ -1,5 +1,7 @@
 # Dynamic Configuration Manager (`go-dconf`)
 
+![STATUS](https://github.com/senseyman/go-dconf/actions/workflows/ci.yml/badge.svg)
+
 `go-dconf` is a Go library designed for managing dynamic configurations in applications. It allows you to update and retrieve configuration values without restarting your app. The library supports periodic polling and real-time updates using Redis (as an example database) and provides a flexible, generic, and thread-safe configuration management mechanism.
 You can use your own storage if you just implement the basic `Repository` interface.
 
